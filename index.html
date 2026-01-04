@@ -3,1714 +3,258 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>黑龙江出行大数据分析系统 - 模块一</title>
-    
-    <!-- 引入 ECharts 图表库 -->
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
-    <!-- 引入Excel处理库 (xlsx) -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- 引入 Tailwind CSS 框架 -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 引入 Font Awesome 图标 -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    
+    <title>图片预览</title>
     <style>
+        /* 基础样式重置 - 完全匹配图片尺寸 */
         * {
-            transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
         
-        .glass-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+        html, body {
+            width: 100%;
+            background-color: #ffffff;
+            overflow-x: hidden;
         }
         
-        .chart-container {
-            transition: all 0.3s ease;
+        /* 禁用文字选择 */
+        body {
+            -webkit-touch-callout: none;
+            -webkit-user-drag: none;
+            -khtml-user-drag: none;
+            -moz-user-drag: none;
+            -o-user-drag: none;
+            user-drag: none;
+            -webkit-tap-highlight-color: transparent;
+            cursor: default;
+            /* 设置初始尺寸，图片加载后会调整 */
+            min-height: 100vh;
         }
         
-        .chart-container:hover {
-            transform: translateY(-4px);
+        /* 图片容器 - 精确匹配图片尺寸，无额外留白 */
+        .image-container {
+            display: block;
+            width: 100%;
+            background-color: #ffffff;
+            /* 去掉padding和margin，避免额外空间 */
+            padding: 0;
+            margin: 0;
         }
         
-        /* 动画 */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        /* 图片样式 - 保持原始质量和尺寸，完全自适应 */
+        .protected-image {
+            display: block;
+            width: 100%;
+            height: auto;
+            pointer-events: none;
+            -webkit-user-drag: none;
+            -khtml-user-drag: none;
+            -moz-user-drag: none;
+            -o-user-drag: none;
+            user-drag: none;
+            /* 确保图片完全显示，不留白边 */
+            max-width: 100%;
+            max-height: none;
         }
         
-        .fade-in {
-            animation: fadeIn 0.4s ease forwards;
-        }
-        
-        /* 指标卡片分组样式 */
-        .metric-group {
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 20px;
-            border: 1px solid #e2e8f0;
-        }
-        
-        .metric-group-title {
-            color: '#475569';
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #e2e8f0;
-        }
-        
-        /* 图表容器样式 */
-        .chart-box {
-            min-height: 450px;
-        }
-        
-        .chart-box-lg {
-            min-height: 550px;
-        }
-        
-        /* 峰值标记动画 */
-        @keyframes peakPulse {
-            0% { transform: translateY(0) scale(1); opacity: 0.9; }
-            50% { transform: translateY(-5px) scale(1.1); opacity: 1; }
-            100% { transform: translateY(0) scale(1); opacity: 0.9; }
-        }
-        
-        .peak-marker {
-            animation: peakPulse 2s infinite ease-in-out;
-        }
-        
-        /* 自定义滚动条 */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: #f1f5f9;
-            border-radius: 4px;
-        }
-        
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
-        
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-        
-        /* 数据标签优化 */
-        .data-label {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 4px;
-            padding: 2px 6px;
-            font-size: 11px;
-            font-weight: 500;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-        
-        /* Toast通知样式 */
-        .toast {
+        /* 透明保护层覆盖整个页面 */
+        .protection-overlay {
             position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 12px 24px;
-            border-radius: 8px;
-            color: white;
-            font-weight: 500;
-            z-index: 9999;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            transform: translateX(120%);
-            transition: transform 0.3s ease;
-        }
-        
-        .toast.show {
-            transform: translateX(0);
-        }
-        
-        .toast.success {
-            background-color: #10b981;
-        }
-        
-        .toast.error {
-            background-color: #ef4444;
-        }
-        
-        .toast.info {
-            background-color: #3b82f6;
-        }
-        
-        .toast.warning {
-            background-color: #f59e0b;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            cursor: default;
+            pointer-events: auto;
         }
     </style>
 </head>
-<body class="bg-gray-50 font-sans text-gray-800 min-h-screen">
-    <!-- 顶部导航 -->
-    <header class="bg-gradient-to-r from-blue-700 to-blue-900 text-white shadow-lg">
-        <div class="container mx-auto px-4 py-8">
-            <div class="text-center">
-                <h1 class="text-4xl md:text-5xl font-bold mb-3">黑龙江出行大数据分析</h1>
-                <div class="flex flex-col md:flex-row justify-center items-center space-y-2 md:space-y-0 md:space-x-6 text-lg text-blue-100">
-                    <span>哈尔滨市文化广电和旅游局</span>
-                    <span class="hidden md:inline">•</span>
-                    <span>2025年10月</span>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <main class="container mx-auto px-4 py-8">
-        <!-- 模块一：整体客流情况 -->
-        <section class="mb-12 fade-in">
-            <!-- 模块标题栏 -->
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 p-6 glass-card rounded-2xl shadow-lg">
-                <div>
-                    <h2 class="text-2xl font-bold text-gray-900 flex items-center">
-                        <span class="w-3 h-8 bg-blue-500 rounded-full mr-3"></span>
-                        模块一、整体客流情况
-                    </h2>
-                    <p class="text-gray-600 mt-2">展示黑龙江省整体游客接待情况与来源分布</p>
-                </div>
-                <div class="flex space-x-3 mt-4 md:mt-0">
-                    <button onclick="importModuleData()" class="px-4 py-2.5 bg-white border border-blue-300 text-blue-600 hover:bg-blue-50 rounded-xl font-medium flex items-center transition-all shadow-sm hover:shadow">
-                        <i class="fas fa-file-import mr-2"></i>
-                        导入数据
-                    </button>
-                    <button onclick="exportModuleData()" class="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-800 text-white hover:opacity-90 rounded-xl font-medium flex items-center transition-all shadow-md hover:shadow-lg">
-                        <i class="fas fa-file-export mr-2"></i>
-                        导出Excel
-                    </button>
-                </div>
-            </div>
-
-            <!-- 关键指标区域 -->
-            <div class="space-y-6 mb-10">
-                <!-- 第1组：整体接待情况 -->
-                <div class="metric-group">
-                    <div class="metric-group-title">第1组：整体接待情况</div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <div class="glass-card rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-white">
-                            <div class="flex justify-between items-start mb-3">
-                                <h3 class="font-semibold text-gray-700">接待游客人次</h3>
-                                <button onclick="editMetric('totalVisitors')" class="text-blue-500 hover:text-blue-700 text-sm">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                            </div>
-                            <div class="flex items-baseline">
-                                <span id="metric-totalVisitors" class="text-3xl font-bold text-gray-900">8394.0</span>
-                                <span class="ml-1 text-gray-600">万</span>
-                            </div>
-                        </div>
-
-                        <div class="glass-card rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-white">
-                            <div class="flex justify-between items-start mb-3">
-                                <h3 class="font-semibold text-gray-700">同比增幅</h3>
-                                <button onclick="editMetric('totalYoy')" class="text-blue-500 hover:text-blue-700 text-sm">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                            </div>
-                            <div class="flex items-baseline">
-                                <span id="metric-totalYoy" class="text-3xl font-bold text-red-600">110.7</span>
-                                <span class="ml-1 text-gray-600">%</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 第2组：境外游客情况 -->
-                <div class="metric-group">
-                    <div class="metric-group-title">第2组：境外游客情况</div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-                        <div class="glass-card rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-white">
-                            <div class="flex justify-between items-start mb-3">
-                                <h3 class="font-semibold text-gray-700">接待境外游客人次</h3>
-                                <button onclick="editMetric('foreignVisitors')" class="text-blue-500 hover:text-blue-700 text-sm">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                            </div>
-                            <div class="flex items-baseline">
-                                <span id="metric-foreignVisitors" class="text-3xl font-bold text-gray-900">29.0</span>
-                                <span class="ml-1 text-gray-600">万</span>
-                            </div>
-                        </div>
-
-                        <div class="glass-card rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-white">
-                            <div class="flex justify-between items-start mb-3">
-                                <h3 class="font-semibold text-gray-700">占比</h3>
-                                <button onclick="editMetric('foreignProportion')" class="text-blue-500 hover:text-blue-700 text-sm">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                            </div>
-                            <div class="flex items-baseline">
-                                <span id="metric-foreignProportion" class="text-3xl font-bold text-gray-900">0.3</span>
-                                <span class="ml-1 text-gray-600">%</span>
-                            </div>
-                        </div>
-
-                        <div class="glass-card rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-white">
-                            <div class="flex justify-between items-start mb-3">
-                                <h3 class="font-semibold text-gray-700">同比增长</h3>
-                                <button onclick="editMetric('foreignYoy')" class="text-blue-500 hover:text-blue-700 text-sm">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                            </div>
-                            <div class="flex items-baseline">
-                                <span id="metric-foreignYoy" class="text-3xl font-bold text-red-600">367.7</span>
-                                <span class="ml-1 text-gray-600">%</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 第3组：外省游客情况 -->
-                <div class="metric-group">
-                    <div class="metric-group-title">第3组：外省游客情况</div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-                        <div class="glass-card rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-white">
-                            <div class="flex justify-between items-start mb-3">
-                                <h3 class="font-semibold text-gray-700">接待外省游客人次</h3>
-                                <button onclick="editMetric('externalVisitors')" class="text-blue-500 hover:text-blue-700 text-sm">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                            </div>
-                            <div class="flex items-baseline">
-                                <span id="metric-externalVisitors" class="text-3xl font-bold text-gray-900">1592.2</span>
-                                <span class="ml-1 text-gray-600">万</span>
-                            </div>
-                        </div>
-
-                        <div class="glass-card rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-white">
-                            <div class="flex justify-between items-start mb-3">
-                                <h3 class="font-semibold text-gray-700">占比</h3>
-                                <button onclick="editMetric('externalProportion')" class="text-blue-500 hover:text-blue-700 text-sm">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                            </div>
-                            <div class="flex items-baseline">
-                                <span id="metric-externalProportion" class="text-3xl font-bold text-gray-900">19.0</span>
-                                <span class="ml-1 text-gray-600">%</span>
-                            </div>
-                        </div>
-
-                        <div class="glass-card rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-white">
-                            <div class="flex justify-between items-start mb-3">
-                                <h3 class="font-semibold text-gray-700">同比增长</h3>
-                                <button onclick="editMetric('externalYoy')" class="text-blue-500 hover:text-blue-700 text-sm">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                            </div>
-                            <div class="flex items-baseline">
-                                <span id="metric-externalYoy" class="text-3xl font-bold text-red-600">122.0</span>
-                                <span class="ml-1 text-gray-600">%</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 第4组：省内游客情况 -->
-                <div class="metric-group">
-                    <div class="metric-group-title">第4组：省内游客情况</div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-                        <div class="glass-card rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-white">
-                            <div class="flex justify-between items-start mb-3">
-                                <h3 class="font-semibold text-gray-700">接待省内游客人次</h3>
-                                <button onclick="editMetric('localVisitors')" class="text-blue-500 hover:text-blue-700 text-sm">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                            </div>
-                            <div class="flex items-baseline">
-                                <span id="metric-localVisitors" class="text-3xl font-bold text-gray-900">6772.8</span>
-                                <span class="ml-1 text-gray-600">万</span>
-                            </div>
-                        </div>
-
-                        <div class="glass-card rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-white">
-                            <div class="flex justify-between items-start mb-3">
-                                <h3 class="font-semibold text-gray-700">占比</h3>
-                                <button onclick="editMetric('localProportion')" class="text-blue-500 hover:text-blue-700 text-sm">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                            </div>
-                            <div class="flex items-baseline">
-                                <span id="metric-localProportion" class="text-3xl font-bold text-gray-900">80.7</span>
-                                <span class="ml-1 text-gray-600">%</span>
-                            </div>
-                        </div>
-
-                        <div class="glass-card rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-white">
-                            <div class="flex justify-between items-start mb-3">
-                                <h3 class="font-semibold text-gray-700">同比增长</h3>
-                                <button onclick="editMetric('localYoy')" class="text-blue-500 hover:text-blue-700 text-sm">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                            </div>
-                            <div class="flex items-baseline">
-                                <span id="metric-localYoy" class="text-3xl font-bold text-red-600">107.7</span>
-                                <span class="ml-1 text-gray-600">%</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 第5组：周期到访情况 -->
-                <div class="metric-group">
-                    <div class="metric-group-title">第5组：周期到访情况</div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <div class="glass-card rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-white">
-                            <div class="flex justify-between items-start mb-3">
-                                <h3 class="font-semibold text-gray-700">周期-日均到访人次</h3>
-                                <button onclick="editMetric('avgDailyVisitors')" class="text-blue-500 hover:text-blue-700 text-sm">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                            </div>
-                            <div class="flex items-baseline">
-                                <span id="metric-avgDailyVisitors" class="text-3xl font-bold text-gray-900">22.9</span>
-                                <span class="ml-1 text-gray-600">万</span>
-                            </div>
-                        </div>
-
-                        <div class="glass-card rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 border border-white">
-                            <div class="flex justify-between items-start mb-3">
-                                <h3 class="font-semibold text-gray-700">周期-日峰值到访人次</h3>
-                                <button onclick="editMetric('peakDailyVisitors')" class="text-blue-500 hover:text-blue-700 text-sm">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                            </div>
-                            <div class="flex items-baseline">
-                                <span id="metric-peakDailyVisitors" class="text-3xl font-bold text-gray-900">52.3</span>
-                                <span class="ml-1 text-gray-600">万</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 图表区域 -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                <!-- 饼状图 -->
-                <div class="glass-card rounded-2xl p-6 shadow-lg chart-container">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-lg font-bold text-gray-900 flex items-center">
-                            <i class="fas fa-chart-pie text-blue-500 mr-2"></i>
-                            游客来源分布
-                        </h3>
-                        <button onclick="editChartData('pieChart')" class="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-sm font-medium transition-colors">
-                            <i class="fas fa-edit mr-1"></i>编辑数据
-                        </button>
-                    </div>
-                    <div id="pieChart" class="chart-box" style="height: 450px;"></div>
-                </div>
-
-                <!-- 柱状图 -->
-                <div class="glass-card rounded-2xl p-6 shadow-lg chart-container">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-lg font-bold text-gray-900 flex items-center">
-                            <i class="fas fa-chart-bar text-blue-500 mr-2"></i>
-                            游客人次对比
-                        </h3>
-                        <button onclick="editChartData('barChart')" class="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-sm font-medium transition-colors">
-                            <i class="fas fa-edit mr-1"></i>编辑数据
-                        </button>
-                    </div>
-                    <div id="barChart" class="chart-box" style="height: 450px;"></div>
-                </div>
-
-                <!-- 堆叠面积图 -->
-                <div class="glass-card rounded-2xl p-6 shadow-lg chart-container lg:col-span-2">
-                    <div class="flex justify-between items-center mb-6">
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-900 flex items-center">
-                                <i class="fas fa-chart-area text-blue-500 mr-2"></i>
-                                每日游客来源趋势
-                            </h3>
-                            <p class="text-sm text-gray-500 mt-1">含峰值标记与数据标签</p>
-                        </div>
-                        <div class="flex space-x-2">
-                            <button onclick="editChartData('stackedAreaChart')" class="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-sm font-medium transition-colors">
-                                <i class="fas fa-edit mr-1"></i>编辑数据
-                            </button>
-                        </div>
-                    </div>
-                    <div id="stackedAreaChart" class="chart-box-lg" style="height: 550px;"></div>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- 数据编辑模态框 -->
-    <div id="dataEditModal" class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
-            <div class="p-6 border-b border-gray-200">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-xl font-bold text-gray-900" id="modalTitle">编辑数据</h3>
-                    <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 text-2xl">
-                        &times;
-                    </button>
-                </div>
-                <p class="text-gray-600 mt-2" id="modalSubtitle">修改数据后点击保存即可更新图表</p>
-            </div>
-            
-            <div class="flex-1 overflow-auto p-6">
-                <div id="modalBody">
-                    <!-- 动态内容 -->
-                </div>
-            </div>
-            
-            <div class="p-6 border-t border-gray-200 bg-gray-50">
-                <div class="flex justify-between items-center">
-                    <div class="flex space-x-3" id="modalActions">
-                        <!-- 动态按钮区域 -->
-                    </div>
-                    <div class="flex space-x-3">
-                        <button onclick="closeModal()" class="px-5 py-2.5 border border-gray-300 text-gray-700 hover:bg-gray-100 rounded-xl font-medium transition-colors">
-                            取消
-                        </button>
-                        <button onclick="saveModalData()" class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-800 text-white hover:opacity-90 rounded-xl font-medium transition-colors shadow-md">
-                            <i class="fas fa-save mr-2"></i>保存更改
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+<body>
+    <!-- 图片容器 - 精确匹配图片尺寸 -->
+    <div class="image-container">
+        <!-- 保护性图片显示 -->
+        <img src="nijiukanwoniubuniubijiuwanle.png" 
+             alt="受保护的图片内容" 
+             class="protected-image" 
+             id="protectedImage">
     </div>
-
-    <!-- 文件导入输入框 (隐藏) -->
-    <input type="file" id="fileInput" accept=".xlsx, .xls" class="hidden" onchange="handleFileImport(event)">
+    
+    <!-- 透明保护层，防止直接与图片交互 -->
+    <div class="protection-overlay" id="protectionOverlay"></div>
 
     <script>
-        // ==================== 全局数据 ====================
-        const module1Data = {
-            metrics: {
-                totalVisitors: { value: '8394.0', unit: '万' },
-                totalYoy: { value: '110.7', unit: '%' },
-                foreignVisitors: { value: '29.0', unit: '万' },
-                foreignProportion: { value: '0.3', unit: '%' },
-                foreignYoy: { value: '367.7', unit: '%' },
-                externalVisitors: { value: '1592.2', unit: '万' },
-                externalProportion: { value: '19.0', unit: '%' },
-                externalYoy: { value: '122.0', unit: '%' },
-                localVisitors: { value: '6772.8', unit: '万' },
-                localProportion: { value: '80.7', unit: '%' },
-                localYoy: { value: '107.7', unit: '%' },
-                avgDailyVisitors: { value: '22.9', unit: '万' },
-                peakDailyVisitors: { value: '52.3', unit: '万' }
-            },
-            pieChart: [
-                { name: '省内人次占比', value: 80.0, color: '#3b82f6' },
-                { name: '国内非本省', value: 19.0, color: '#10b981' },
-                { name: '境外', value: 1.0, color: '#f59e0b' }
-            ],
-            barChart: {
-                categories: ['全部', '省内', '国内非本省', '境外'],
-                series: [
-                    { name: '当前年', data: [83940000, 67720000, 15920000, 290000], color: '#3b82f6' },
-                    { name: '去年', data: [63940000, 47720000, 10920000, 220000], color: '#10b981' }
-                ]
-            },
-            stackedAreaChart: {
-                days: ['D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8'],
-                series: [
-                    { name: '境外（关境概念）', data: [6037, 6146, 6050, 6211, 6293, 6383, 5824, 5277], color: '#ef4444' },
-                    { name: '外省/自治区/直辖市', data: [120530, 229108, 305359, 356628, 346143, 294950, 270392, 224151], color: '#f59e0b' },
-                    { name: '省内跨地市（出行）', data: [259241, 292740, 315244, 338583, 336697, 296356, 279506, 277614], color: '#10b981' },
-                    { name: '本地市', data: [751445, 723287, 801982, 845655, 840347, 778090, 719296, 755588], color: '#3b82f6' }
-                ]
-            }
-        };
-
-        // 计算堆叠面积图的峰值
-        function calculatePeakData() {
-            const days = module1Data.stackedAreaChart.days;
-            const series = module1Data.stackedAreaChart.series;
-            
-            let maxTotal = 0;
-            let peakIndex = -1;
-            
-            // 对每一天计算所有系列的总和
-            for (let i = 0; i < days.length; i++) {
-                let dayTotal = 0;
-                for (let j = 0; j < series.length; j++) {
-                    if (series[j].data[i] !== undefined) {
-                        dayTotal += series[j].data[i];
-                    }
-                }
-                
-                if (dayTotal > maxTotal) {
-                    maxTotal = dayTotal;
-                    peakIndex = i;
-                }
-            }
-            
-            return {
-                value: maxTotal,
-                index: peakIndex,
-                day: days[peakIndex] || ''
-            };
-        }
-
-        // ==================== 图表初始化 ====================
-        document.addEventListener('DOMContentLoaded', function() {
-            // 初始化图表
-            initPieChart();
-            initBarChart();
-            initStackedAreaChart();
-            
-            // 窗口调整时重新调整图表大小
-            window.addEventListener('resize', function() {
-                if (window.pieChart) window.pieChart.resize();
-                if (window.barChart) window.barChart.resize();
-                if (window.stackedAreaChart) window.stackedAreaChart.resize();
-            });
+        // 获取元素
+        const protectedImage = document.getElementById('protectedImage');
+        const protectionOverlay = document.getElementById('protectionOverlay');
+        
+        // 禁用右键菜单
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
         });
-
-        function initPieChart() {
-            const chartDom = document.getElementById('pieChart');
-            if (!chartDom) return;
+        
+        // 禁用拖拽
+        document.addEventListener('dragstart', function(e) {
+            e.preventDefault();
+            return false;
+        });
+        
+        // 禁用选择
+        document.addEventListener('selectstart', function(e) {
+            e.preventDefault();
+            return false;
+        });
+        
+        // 禁用键盘快捷键
+        document.addEventListener('keydown', function(e) {
+            // 禁用Print Screen键
+            if (e.keyCode === 44) {
+                e.preventDefault();
+                return false;
+            }
             
-            window.pieChart = echarts.init(chartDom);
+            // 禁用Ctrl+P (打印)
+            if (e.ctrlKey && e.keyCode === 80) {
+                e.preventDefault();
+                return false;
+            }
             
-            const option = {
-                tooltip: {
-                    trigger: 'item',
-                    formatter: '{a} <br/>{b}: {c}%'
-                },
-                legend: {
-                    orient: 'horizontal',
-                    bottom: 20,
-                    textStyle: { color: '#64748b', fontSize: 12 },
-                    itemGap: 20
-                },
-                series: [{
-                    name: '游客来源',
-                    type: 'pie',
-                    radius: ['45%', '70%'],
-                    center: ['50%', '45%'],
-                    data: module1Data.pieChart,
-                    emphasis: {
-                        itemStyle: {
-                            shadowBlur: 10,
-                            shadowOffsetX: 0,
-                            shadowColor: 'rgba(0, 0, 0, 0.2)'
-                        }
-                    },
-                    label: {
-                        color: '#334155',
-                        formatter: '{b}: {c}%',
-                        fontSize: 12
-                    },
-                    labelLine: {
-                        length: 10,
-                        length2: 15,
-                        smooth: true
-                    },
-                    itemStyle: {
-                        borderRadius: 8,
-                        borderColor: '#fff',
-                        borderWidth: 3
-                    }
-                }],
-                color: module1Data.pieChart.map(item => item.color)
-            };
+            // 禁用Ctrl+S (保存)
+            if (e.ctrlKey && e.keyCode === 83) {
+                e.preventDefault();
+                return false;
+            }
             
-            window.pieChart.setOption(option);
+            // 禁用F12 (开发者工具)
+            if (e.keyCode === 123) {
+                e.preventDefault();
+                return false;
+            }
+        });
+        
+        // 图片加载完成后，精确调整页面尺寸与图片一致
+        protectedImage.onload = function() {
+            // 获取图片原始尺寸
+            const naturalWidth = this.naturalWidth;
+            const naturalHeight = this.naturalHeight;
+            
+            // 移除所有可能导致留白的样式
+            const container = document.querySelector('.image-container');
+            const body = document.body;
+            const html = document.documentElement;
+            
+            // 计算图片在100%宽度下的实际显示高度
+            const viewportWidth = window.innerWidth;
+            const scaleFactor = viewportWidth / naturalWidth;
+            const displayHeight = naturalHeight * scaleFactor;
+            
+            // 设置body和html高度精确匹配图片显示高度
+            body.style.height = displayHeight + 'px';
+            html.style.height = displayHeight + 'px';
+            
+            // 设置容器高度精确匹配图片显示高度
+            container.style.height = displayHeight + 'px';
+            
+            console.log('图片已加载，原始尺寸:', naturalWidth + 'x' + naturalHeight + '像素');
+            console.log('显示尺寸:', viewportWidth + 'x' + displayHeight + '像素');
+            console.log('页面尺寸已精确匹配图片显示尺寸');
+            
+            // 如果有轻微误差，确保图片占满容器
+            const imgElement = document.querySelector('.protected-image');
+            imgElement.style.width = '100%';
+            imgElement.style.height = '100%';
+            imgElement.style.objectFit = 'contain';
+        };
+        
+        // 如果图片已经缓存，直接触发加载事件
+        if (protectedImage.complete) {
+            protectedImage.onload();
         }
-
-        function initBarChart() {
-            const chartDom = document.getElementById('barChart');
-            if (!chartDom) return;
+        
+        // 图片加载失败处理
+        protectedImage.onerror = function() {
+            console.error('图片加载失败，请检查图片路径或文件名');
+            console.log('当前图片路径:', this.src);
             
-            window.barChart = echarts.init(chartDom);
+            // 尝试常见的图片扩展名
+            const baseName = this.src.split('.')[0];
+            const extensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.PNG', '.JPG'];
             
-            const option = {
-                tooltip: {
-                    trigger: 'axis',
-                    axisPointer: { type: 'shadow' },
-                    formatter: function(params) {
-                        let result = params[0].name + '<br/>';
-                        params.forEach(param => {
-                            const value = param.value.toLocaleString();
-                            result += `<span style="display:inline-block;margin-right:5px;border-radius:50%;width:10px;height:10px;background-color:${param.color}"></span>`;
-                            result += `${param.seriesName}: ${value}人次<br/>`;
-                        });
-                        return result;
-                    }
-                },
-                legend: {
-                    data: ['当前年', '去年'],
-                    top: 10,
-                    textStyle: { color: '#64748b' },
-                    itemGap: 20
-                },
-                grid: {
-                    left: '3%',
-                    right: '4%',
-                    bottom: '12%',
-                    top: '18%',
-                    containLabel: true
-                },
-                xAxis: {
-                    type: 'category',
-                    data: module1Data.barChart.categories,
-                    axisLabel: {
-                        color: '#64748b',
-                        fontSize: 12
-                    }
-                },
-                yAxis: {
-                    type: 'value',
-                    name: '人次',
-                    axisLabel: {
-                        color: '#64748b',
-                        fontSize: 12,
-                        formatter: function(value) {
-                            return (value / 10000).toFixed(0) + '万';
-                        }
-                    }
-                },
-                series: [
-                    {
-                        name: '当前年',
-                        type: 'bar',
-                        data: module1Data.barChart.series[0].data,
-                        itemStyle: {
-                            color: module1Data.barChart.series[0].color,
-                            borderRadius: [4, 4, 0, 0]
-                        },
-                        label: {
-                            show: true,
-                            position: 'top',
-                            formatter: function(params) {
-                                return (params.value / 10000).toFixed(0) + '万';
-                            },
-                            fontSize: 11,
-                            color: '#1e293b'
-                        },
-                        barWidth: '35%'
-                    },
-                    {
-                        name: '去年',
-                        type: 'bar',
-                        data: module1Data.barChart.series[1].data,
-                        itemStyle: {
-                            color: module1Data.barChart.series[1].color,
-                            borderRadius: [4, 4, 0, 0]
-                        },
-                        label: {
-                            show: true,
-                            position: 'top',
-                            formatter: function(params) {
-                                return (params.value / 10000).toFixed(0) + '万';
-                            },
-                            fontSize: 11,
-                            color: '#1e293b'
-                        },
-                        barWidth: '35%'
-                    }
-                ]
-            };
-            
-            window.barChart.setOption(option);
-        }
-
-        function initStackedAreaChart() {
-            const chartDom = document.getElementById('stackedAreaChart');
-            if (!chartDom) return;
-            
-            window.stackedAreaChart = echarts.init(chartDom);
-            
-            // 计算峰值
-            const peakData = calculatePeakData();
-            
-            // 计算数据最大值
-            let dataMax = 0;
-            module1Data.stackedAreaChart.series.forEach(series => {
-                const seriesMax = Math.max(...series.data);
-                if (seriesMax > dataMax) dataMax = seriesMax;
-            });
-            
-            // 创建系列数据 - 优化数据标签显示
-            const series = module1Data.stackedAreaChart.series.map((item, index) => {
-                return {
-                    name: item.name,
-                    type: 'line',
-                    stack: '总量',
-                    smooth: false,
-                    lineStyle: {
-                        width: 2.5,
-                        color: item.color
-                    },
-                    areaStyle: {
-                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                            { offset: 0, color: item.color + '80' },
-                            { offset: 0.5, color: item.color + '40' },
-                            { offset: 1, color: item.color + '10' }
-                        ])
-                    },
-                    data: item.data,
-                    symbol: 'circle',
-                    symbolSize: 7,
-                    itemStyle: {
-                        color: item.color
-                    },
-                    // 优化数据标签显示
-                    label: {
-                        show: true,
-                        position: 'top',
-                        distance: 8, // 减少距离，使标签更接近数据点
-                        formatter: function(params) {
-                            if (params.value >= 10000) {
-                                return (params.value / 10000).toFixed(0) + '万';
-                            }
-                            return params.value.toLocaleString();
-                        },
-                        fontSize: 10,
-                        fontWeight: 'normal',
-                        fontFamily: 'PingFang SC, Microsoft YaHei, sans-serif',
-                        color: '#1e293b',
-                        backgroundColor: 'rgba(255, 255, 255, 0.85)',
-                        borderColor: item.color,
-                        borderWidth: 1,
-                        borderRadius: 3,
-                        padding: [2, 4, 2, 4],
-                        shadowBlur: 2,
-                        shadowColor: 'rgba(0, 0, 0, 0.1)'
-                    },
-                    emphasis: {
-                        focus: 'series',
-                        label: {
-                            show: true,
-                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                            fontSize: 11
-                        }
+            let found = false;
+            for (let ext of extensions) {
+                const testSrc = baseName + ext;
+                const testImage = new Image();
+                testImage.onload = function() {
+                    if (!found) {
+                        protectedImage.src = testSrc;
+                        console.log('找到图片:', testSrc);
+                        found = true;
                     }
                 };
-            });
-            
-            // 添加峰值标记系列 - 向上调整位置，不遮挡数据标签
-            if (peakData.index >= 0 && peakData.value > 0) {
-                // 获取峰值当天所有数据系列的总和
-                let peakDayValue = 0;
-                module1Data.stackedAreaChart.series.forEach(series => {
-                    if (series.data[peakData.index] !== undefined) {
-                        peakDayValue += series.data[peakData.index];
-                    }
-                });
-                
-                // 设置峰值标记点的高度为峰值总和 * 1.4，确保在数据标签上方
-                const peakMarkerHeight = peakDayValue * 1.4;
-                
-                // 计算峰值标记的x坐标（稍微偏移，避免与数据点完全重叠）
-                const peakXCoord = peakData.index;
-                
-                series.push({
-                    name: '峰值标记',
-                    type: 'scatter',
-                    symbol: 'pin',
-                    symbolSize: 32,
-                    itemStyle: {
-                        color: '#dc2626',
-                        borderColor: '#fff',
-                        borderWidth: 3,
-                        shadowBlur: 15,
-                        shadowColor: 'rgba(220, 38, 38, 0.5)'
-                    },
-                    // 峰值标签放在标记点上方更远位置
-                    label: {
-                        show: true,
-                        position: 'top',
-                        formatter: `峰值\n${peakData.value.toLocaleString()}\n${peakData.day}`,
-                        fontSize: 11,
-                        fontWeight: 'bold',
-                        color: '#dc2626',
-                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                        borderColor: '#dc2626',
-                        borderWidth: 1.5,
-                        borderRadius: 6,
-                        padding: [5, 8, 5, 8],
-                        distance: 50, // 增加距离，使标签更靠上
-                        shadowBlur: 6,
-                        shadowColor: 'rgba(0, 0, 0, 0.15)',
-                        lineHeight: 16
-                    },
-                    data: [[peakXCoord, peakMarkerHeight]],
-                    zlevel: 100,
-                    emphasis: {
-                        disabled: true
-                    }
-                });
+                testImage.src = testSrc;
             }
-            
-            const option = {
-                tooltip: {
-                    trigger: 'axis',
-                    axisPointer: {
-                        type: 'cross',
-                        label: {
-                            backgroundColor: '#6b7280'
-                        }
-                    },
-                    formatter: function(params) {
-                        let result = `${params[0].name}<br/>`;
-                        let total = 0;
-                        
-                        params.forEach(param => {
-                            if (param.seriesName !== '峰值标记') {
-                                const value = param.value.toLocaleString();
-                                result += `<span style="display:inline-block;margin-right:5px;border-radius:50%;width:10px;height:10px;background-color:${param.color}"></span>`;
-                                result += `${param.seriesName}: ${value}人次<br/>`;
-                                total += param.value;
+        };
+        
+        // 防止通过检查元素获取图片
+        (function() {
+            // 监控DOM变化
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.removedNodes) {
+                        mutation.removedNodes.forEach(function(node) {
+                            if (node === protectedImage) {
+                                document.querySelector('.image-container').appendChild(protectedImage);
+                                console.log('检测到图片被移除，已恢复');
                             }
                         });
-                        
-                        result += `<hr style="margin:5px 0;border-color:#e5e7eb;border-style:dashed">`;
-                        result += `<strong>总计: ${total.toLocaleString()}人次</strong>`;
-                        
-                        return result;
-                    }
-                },
-                legend: {
-                    data: module1Data.stackedAreaChart.series.map(s => s.name),
-                    top: 10,
-                    textStyle: { color: '#64748b', fontSize: 12 },
-                    itemGap: 20,
-                    type: 'scroll'
-                },
-                grid: {
-                    left: '3%',
-                    right: '4%',
-                    bottom: '12%',
-                    top: '18%',
-                    containLabel: true
-                },
-                xAxis: {
-                    type: 'category',
-                    boundaryGap: false,
-                    data: module1Data.stackedAreaChart.days,
-                    axisLabel: {
-                        color: '#64748b',
-                        fontSize: 12,
-                        margin: 15
-                    },
-                    axisLine: {
-                        lineStyle: {
-                            color: '#cbd5e1'
-                        }
-                    }
-                },
-                yAxis: {
-                    type: 'value',
-                    name: '人次',
-                    nameTextStyle: {
-                        color: '#64748b',
-                        fontSize: 12
-                    },
-                    axisLabel: {
-                        color: '#64748b',
-                        fontSize: 12,
-                        formatter: function(value) {
-                            if (value >= 10000) {
-                                return (value / 10000).toFixed(0) + '万';
-                            }
-                            return value;
-                        }
-                    },
-                    axisLine: {
-                        lineStyle: {
-                            color: '#cbd5e1'
-                        }
-                    },
-                    splitLine: {
-                        lineStyle: {
-                            color: '#f1f5f9',
-                            type: 'dashed'
-                        }
-                    },
-                    // 为峰值标记留出充足的上方空间
-                    max: function(value) {
-                        return value.max * 1.5;
-                    }
-                },
-                series: series
-            };
-            
-            window.stackedAreaChart.setOption(option);
-        }
-
-        // ==================== 数据编辑功能 ====================
-        function editMetric(metricKey) {
-            const metric = module1Data.metrics[metricKey];
-            const metricNames = {
-                'totalVisitors': '接待游客人次',
-                'totalYoy': '同比增幅',
-                'foreignVisitors': '接待境外游客人次',
-                'foreignProportion': '境外游客占比',
-                'foreignYoy': '境外游客同比增长',
-                'externalVisitors': '接待外省游客人次',
-                'externalProportion': '外省游客占比',
-                'externalYoy': '外省游客同比增长',
-                'localVisitors': '接待省内游客人次',
-                'localProportion': '省内游客占比',
-                'localYoy': '省内游客同比增长',
-                'avgDailyVisitors': '周期日均到访人次',
-                'peakDailyVisitors': '周期日峰值到访人次'
-            };
-            
-            const title = `编辑${metricNames[metricKey] || metricKey}`;
-            const html = `
-                <div class="space-y-6">
-                    <div>
-                        <label class="block text-gray-700 font-medium mb-2">数值</label>
-                        <div class="flex items-center">
-                            <input type="text" id="editValue" value="${metric.value}" 
-                                   class="w-full py-3 px-4 rounded-lg border border-gray-300 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <span class="ml-3 text-gray-600 font-medium">${metric.unit || ''}</span>
-                        </div>
-                    </div>
-                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r">
-                        <p class="text-blue-700 text-sm">
-                            <i class="fas fa-info-circle mr-2"></i>
-                            修改后点击保存，页面将自动更新
-                        </p>
-                    </div>
-                </div>
-            `;
-            
-            openModal(title, html, metricKey, 'metric');
-        }
-
-        function editChartData(chartId) {
-            let title = '';
-            let html = '';
-            let buttons = '';
-            
-            if (chartId === 'pieChart') {
-                title = '编辑游客来源分布数据';
-                html = `
-                    <div class="mb-4">
-                        <p class="text-gray-600">修改饼图数据（单位：%）</p>
-                    </div>
-                    <div class="overflow-x-auto rounded-lg border border-gray-200">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">来源</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">占比 (%)</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">颜色</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200" id="editTableBody">
-                                ${module1Data.pieChart.map((item, index) => `
-                                    <tr>
-                                        <td class="px-4 py-3 whitespace-nowrap">
-                                            <input type="text" value="${item.name}" data-index="${index}" data-field="name" 
-                                                   class="w-full py-2 px-3 rounded border border-gray-300">
-                                        </td>
-                                        <td class="px-4 py-3 whitespace-nowrap">
-                                            <input type="number" step="0.1" value="${item.value}" data-index="${index}" data-field="value" 
-                                                   class="w-full py-2 px-3 rounded border border-gray-300">
-                                        </td>
-                                        <td class="px-4 py-3 whitespace-nowrap">
-                                            <input type="color" value="${item.color}" data-index="${index}" data-field="color" 
-                                                   class="w-10 h-10 rounded border border-gray-300 cursor-pointer">
-                                        </td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-                
-                buttons = `
-                    <button onclick="addRow()" class="px-4 py-2 bg-green-500 text-white hover:bg-green-600 rounded-lg font-medium transition-colors">
-                        <i class="fas fa-plus mr-2"></i>添加行
-                    </button>
-                    <button onclick="removeRow()" class="px-4 py-2 bg-red-500 text-white hover:bg-red-600 rounded-lg font-medium transition-colors">
-                        <i class="fas fa-minus mr-2"></i>删除行
-                    </button>
-                `;
-                
-            } else if (chartId === 'barChart') {
-                title = '编辑游客人次对比数据';
-                html = `
-                    <div class="mb-4">
-                        <p class="text-gray-600">修改柱状图数据（单位：人次）</p>
-                    </div>
-                    <div class="overflow-x-auto rounded-lg border border-gray-200">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">来源</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">当前年</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">去年</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200" id="editTableBody">
-                                ${module1Data.barChart.categories.map((category, index) => `
-                                    <tr>
-                                        <td class="px-4 py-3 whitespace-nowrap">
-                                            <input type="text" value="${category}" data-index="${index}" data-field="category" 
-                                                   class="w-full py-2 px-3 rounded border border-gray-300">
-                                        </td>
-                                        <td class="px-4 py-3 whitespace-nowrap">
-                                            <input type="number" value="${module1Data.barChart.series[0].data[index]}" 
-                                                   data-index="${index}" data-field="currentYear" 
-                                                   class="w-full py-2 px-3 rounded border border-gray-300">
-                                        </td>
-                                        <td class="px-4 py-3 whitespace-nowrap">
-                                            <input type="number" value="${module1Data.barChart.series[1].data[index]}" 
-                                                   data-index="${index}" data-field="lastYear" 
-                                                   class="w-full py-2 px-3 rounded border border-gray-300">
-                                        </td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="mt-4 flex space-x-4">
-                        <div class="flex-1">
-                            <label class="block text-gray-700 font-medium mb-2">当前年颜色</label>
-                            <input type="color" value="${module1Data.barChart.series[0].color}" id="currentYearColor" 
-                                   class="w-12 h-12 rounded border border-gray-300 cursor-pointer">
-                        </div>
-                        <div class="flex-1">
-                            <label class="block text-gray-700 font-medium mb-2">去年颜色</label>
-                            <input type="color" value="${module1Data.barChart.series[1].color}" id="lastYearColor" 
-                                   class="w-12 h-12 rounded border border-gray-300 cursor-pointer">
-                        </div>
-                    </div>
-                `;
-                
-                buttons = `
-                    <button onclick="addRow()" class="px-4 py-2 bg-green-500 text-white hover:bg-green-600 rounded-lg font-medium transition-colors">
-                        <i class="fas fa-plus mr-2"></i>添加行
-                    </button>
-                    <button onclick="removeRow()" class="px-4 py-2 bg-red-500 text-white hover:bg-red-600 rounded-lg font-medium transition-colors">
-                        <i class="fas fa-minus mr-2"></i>删除行
-                    </button>
-                `;
-                
-            } else if (chartId === 'stackedAreaChart') {
-                title = '编辑每日游客来源趋势数据';
-                html = `
-                    <div class="mb-4">
-                        <p class="text-gray-600">修改堆叠面积图数据（单位：人次）</p>
-                    </div>
-                    <div class="mb-6">
-                        <div class="flex justify-between items-center mb-3">
-                            <h4 class="font-medium text-gray-700">X轴日期标签编辑</h4>
-                            <div class="flex space-x-2">
-                                <button onclick="addXAxisDay()" class="px-3 py-1.5 bg-green-500 text-white hover:bg-green-600 rounded-lg text-sm font-medium transition-colors">
-                                    <i class="fas fa-plus mr-1"></i>增加一天
-                                </button>
-                                <button onclick="removeXAxisDay()" class="px-3 py-1.5 bg-red-500 text-white hover:bg-red-600 rounded-lg text-sm font-medium transition-colors">
-                                    <i class="fas fa-minus mr-1"></i>减少一天
-                                </button>
-                            </div>
-                        </div>
-                        <div class="bg-blue-50 p-4 rounded-lg">
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="xAxisLabelsContainer">
-                                ${module1Data.stackedAreaChart.days.map((day, index) => `
-                                    <div class="relative">
-                                        <label class="block text-gray-600 text-sm mb-1">第${index + 1}天</label>
-                                        <input type="text" value="${day}" data-day-index="${index}" 
-                                               class="xaxis-label-input w-full py-2 px-3 rounded border border-gray-300">
-                                        <span class="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                                            ${index + 1}
-                                        </span>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="overflow-x-auto rounded-lg border border-gray-200">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">来源</th>
-                                    ${module1Data.stackedAreaChart.days.map(day => `
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">${day}</th>
-                                    `).join('')}
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">颜色</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200" id="editTableBody">
-                                ${module1Data.stackedAreaChart.series.map((series, seriesIndex) => `
-                                    <tr>
-                                        <td class="px-4 py-3 whitespace-nowrap">
-                                            <input type="text" value="${series.name}" data-series="${seriesIndex}" data-field="name" 
-                                                   class="w-full py-2 px-3 rounded border border-gray-300">
-                                        </td>
-                                        ${series.data.map((value, dayIndex) => `
-                                            <td class="px-4 py-3 whitespace-nowrap">
-                                                <input type="number" value="${value}" data-series="${seriesIndex}" data-day="${dayIndex}" 
-                                                       class="w-full py-2 px-3 rounded border border-gray-300">
-                                            </td>
-                                        `).join('')}
-                                        <td class="px-4 py-3 whitespace-nowrap">
-                                            <input type="color" value="${series.color}" data-series="${seriesIndex}" data-field="color" 
-                                                   class="w-10 h-10 rounded border border-gray-300 cursor-pointer">
-                                        </td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="mt-4 bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-r">
-                        <p class="text-yellow-700 text-sm">
-                            <i class="fas fa-exclamation-triangle mr-2"></i>
-                            修改数据后，峰值标记会自动重新计算并调整位置
-                        </p>
-                    </div>
-                `;
-                
-                buttons = `
-                    <button onclick="addRow()" class="px-4 py-2 bg-green-500 text-white hover:bg-green-600 rounded-lg font-medium transition-colors">
-                        <i class="fas fa-plus mr-2"></i>添加系列
-                    </button>
-                    <button onclick="removeRow()" class="px-4 py-2 bg-red-500 text-white hover:bg-red-600 rounded-lg font-medium transition-colors">
-                        <i class="fas fa-minus mr-2"></i>删除系列
-                    </button>
-                `;
-            }
-            
-            openModal(title, html, chartId, 'chart', buttons);
-        }
-
-        let currentEditType = null;
-        let currentEditTarget = null;
-
-        function openModal(title, content, target, type, buttons = '') {
-            currentEditTarget = target;
-            currentEditType = type;
-            
-            document.getElementById('modalTitle').textContent = title;
-            document.getElementById('modalBody').innerHTML = content;
-            
-            // 设置操作按钮
-            const modalActions = document.getElementById('modalActions');
-            if (buttons) {
-                modalActions.innerHTML = buttons;
-            } else {
-                modalActions.innerHTML = '';
-            }
-            
-            document.getElementById('dataEditModal').classList.remove('hidden');
-        }
-
-        function closeModal() {
-            document.getElementById('dataEditModal').classList.add('hidden');
-            currentEditType = null;
-            currentEditTarget = null;
-        }
-
-        // 添加X轴日期标签
-        function addXAxisDay() {
-            const container = document.getElementById('xAxisLabelsContainer');
-            if (!container) return;
-            
-            // 获取当前天数
-            const currentDays = container.children.length;
-            const newDayIndex = currentDays;
-            
-            // 创建新的日期标签输入框
-            const newDayDiv = document.createElement('div');
-            newDayDiv.className = 'relative';
-            newDayDiv.innerHTML = `
-                <label class="block text-gray-600 text-sm mb-1">第${newDayIndex + 1}天</label>
-                <input type="text" value="D${newDayIndex + 1}" data-day-index="${newDayIndex}" 
-                       class="xaxis-label-input w-full py-2 px-3 rounded border border-gray-300">
-                <span class="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    ${newDayIndex + 1}
-                </span>
-            `;
-            
-            container.appendChild(newDayDiv);
-            
-            // 为每个系列添加新的数据输入框
-            const tableBody = document.getElementById('editTableBody');
-            if (tableBody) {
-                const rows = tableBody.querySelectorAll('tr');
-                rows.forEach(row => {
-                    const seriesIndex = parseInt(row.querySelector('input[data-series]')?.dataset.series || 0);
-                    const dayCells = row.querySelectorAll('td[data-day]');
-                    const lastDayIndex = dayCells.length - 1;
-                    
-                    // 创建新的数据单元格
-                    const newCell = document.createElement('td');
-                    newCell.className = 'px-4 py-3 whitespace-nowrap';
-                    newCell.innerHTML = `
-                        <input type="number" value="0" data-series="${seriesIndex}" data-day="${newDayIndex}" 
-                               class="w-full py-2 px-3 rounded border border-gray-300">
-                    `;
-                    
-                    // 插入到颜色列之前
-                    const colorCell = row.querySelector('td:last-child');
-                    row.insertBefore(newCell, colorCell);
-                });
-            }
-            
-            // 更新表格标题
-            updateTableHeaders();
-            
-            showToast(`已添加第${newDayIndex + 1}天`, 'info');
-        }
-
-        // 删除X轴日期标签
-        function removeXAxisDay() {
-            const container = document.getElementById('xAxisLabelsContainer');
-            if (!container || container.children.length <= 1) {
-                showToast('至少需要保留一天数据', 'warning');
-                return;
-            }
-            
-            // 删除最后一个日期标签
-            container.removeChild(container.lastElementChild);
-            
-            // 从每个系列中删除最后一列数据
-            const tableBody = document.getElementById('editTableBody');
-            if (tableBody) {
-                const rows = tableBody.querySelectorAll('tr');
-                rows.forEach(row => {
-                    // 找到倒数第二列（颜色列的前一列）
-                    const colorCell = row.querySelector('td:last-child');
-                    const lastDataCell = colorCell.previousElementSibling;
-                    if (lastDataCell) {
-                        row.removeChild(lastDataCell);
                     }
                 });
-            }
-            
-            // 更新表格标题
-            updateTableHeaders();
-            
-            showToast('已删除最后一天', 'info');
-        }
-
-        // 更新表格标题
-        function updateTableHeaders() {
-            const container = document.getElementById('xAxisLabelsContainer');
-            if (!container) return;
-            
-            // 获取所有日期标签
-            const dayInputs = container.querySelectorAll('.xaxis-label-input');
-            const days = Array.from(dayInputs).map(input => input.value);
-            
-            // 更新表格标题行
-            const table = document.querySelector('table');
-            if (table) {
-                const headerRow = table.querySelector('thead tr');
-                if (headerRow) {
-                    // 清除现有的日期标题（保留第一个和最后一个单元格）
-                    const thElements = headerRow.querySelectorAll('th');
-                    for (let i = 1; i < thElements.length - 1; i++) {
-                        thElements[i].remove();
-                    }
-                    
-                    // 添加新的日期标题
-                    const firstTh = headerRow.querySelector('th:first-child');
-                    const lastTh = headerRow.querySelector('th:last-child');
-                    
-                    days.forEach(day => {
-                        const newTh = document.createElement('th');
-                        newTh.className = 'px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase';
-                        newTh.textContent = day;
-                        headerRow.insertBefore(newTh, lastTh);
-                    });
-                }
-            }
-        }
-
-        function saveModalData() {
-            if (currentEditType === 'metric') {
-                // 保存指标数据
-                const metric = module1Data.metrics[currentEditTarget];
-                const newValue = document.getElementById('editValue').value;
-                
-                metric.value = newValue;
-                
-                // 更新页面显示
-                const metricElement = document.getElementById(`metric-${currentEditTarget}`);
-                if (metricElement) {
-                    metricElement.textContent = newValue;
-                }
-                
-                showToast('指标数据已更新', 'success');
-                
-            } else if (currentEditType === 'chart') {
-                if (currentEditTarget === 'pieChart') {
-                    // 保存饼图数据
-                    const inputs = document.querySelectorAll('#editTableBody input');
-                    inputs.forEach(input => {
-                        const index = parseInt(input.dataset.index);
-                        const field = input.dataset.field;
-                        const value = field === 'value' ? parseFloat(input.value) : input.value;
-                        
-                        if (module1Data.pieChart[index]) {
-                            module1Data.pieChart[index][field] = value;
-                        }
-                    });
-                    
-                    // 更新图表
-                    if (window.pieChart) {
-                        window.pieChart.setOption({
-                            series: [{
-                                data: module1Data.pieChart.map(item => ({
-                                    name: item.name,
-                                    value: item.value
-                                }))
-                            }],
-                            color: module1Data.pieChart.map(item => item.color)
-                        });
-                    }
-                    
-                    showToast('饼图数据已更新', 'success');
-                    
-                } else if (currentEditTarget === 'barChart') {
-                    // 保存柱状图数据
-                    const newCategories = [];
-                    const newCurrentYear = [];
-                    const newLastYear = [];
-                    
-                    // 按行分组处理数据
-                    const rowCount = module1Data.barChart.categories.length;
-                    for (let i = 0; i < rowCount; i++) {
-                        const categoryInput = document.querySelector(`input[data-index="${i}"][data-field="category"]`);
-                        const currentYearInput = document.querySelector(`input[data-index="${i}"][data-field="currentYear"]`);
-                        const lastYearInput = document.querySelector(`input[data-index="${i}"][data-field="lastYear"]`);
-                        
-                        if (categoryInput && currentYearInput && lastYearInput) {
-                            newCategories.push(categoryInput.value);
-                            newCurrentYear.push(parseInt(currentYearInput.value) || 0);
-                            newLastYear.push(parseInt(lastYearInput.value) || 0);
-                        }
-                    }
-                    
-                    // 更新颜色
-                    const currentYearColor = document.getElementById('currentYearColor').value;
-                    const lastYearColor = document.getElementById('lastYearColor').value;
-                    
-                    // 更新数据源
-                    module1Data.barChart.categories = newCategories;
-                    module1Data.barChart.series[0].data = newCurrentYear;
-                    module1Data.barChart.series[0].color = currentYearColor;
-                    module1Data.barChart.series[1].data = newLastYear;
-                    module1Data.barChart.series[1].color = lastYearColor;
-                    
-                    // 更新图表
-                    if (window.barChart) {
-                        window.barChart.setOption({
-                            xAxis: { data: newCategories },
-                            series: [
-                                { data: newCurrentYear, itemStyle: { color: currentYearColor } },
-                                { data: newLastYear, itemStyle: { color: lastYearColor } }
-                            ]
-                        });
-                    }
-                    
-                    showToast('柱状图数据已更新', 'success');
-                    
-                } else if (currentEditTarget === 'stackedAreaChart') {
-                    // 保存堆叠面积图数据
-                    // 首先保存X轴日期标签
-                    const xAxisLabelInputs = document.querySelectorAll('.xaxis-label-input');
-                    const newDays = [];
-                    xAxisLabelInputs.forEach(input => {
-                        const dayIndex = parseInt(input.dataset.dayIndex);
-                        newDays[dayIndex] = input.value || `D${dayIndex + 1}`;
-                    });
-                    
-                    // 过滤掉undefined值
-                    module1Data.stackedAreaChart.days = newDays.filter(day => day !== undefined);
-                    
-                    // 获取新的系列名称和颜色
-                    const nameInputs = document.querySelectorAll('input[data-field="name"]');
-                    const colorInputs = document.querySelectorAll('input[data-field="color"]');
-                    
-                    // 获取数据
-                    const dataInputs = document.querySelectorAll('input[data-day]');
-                    
-                    // 重新组织数据
-                    const newSeries = [];
-                    nameInputs.forEach((input, seriesIndex) => {
-                        const color = colorInputs[seriesIndex]?.value || module1Data.stackedAreaChart.series[seriesIndex]?.color;
-                        const seriesData = [];
-                        
-                        // 为该系列收集所有数据
-                        dataInputs.forEach(dataInput => {
-                            if (parseInt(dataInput.dataset.series) === seriesIndex) {
-                                const dayIndex = parseInt(dataInput.dataset.day);
-                                const value = parseInt(dataInput.value) || 0;
-                                seriesData[dayIndex] = value;
-                            }
-                        });
-                        
-                        // 过滤掉undefined值，确保数组长度与days一致
-                        const filteredData = seriesData.filter(value => value !== undefined);
-                        
-                        newSeries.push({
-                            name: input.value,
-                            color: color,
-                            data: filteredData
-                        });
-                    });
-                    
-                    // 更新数据源
-                    module1Data.stackedAreaChart.series = newSeries;
-                    
-                    // 重新初始化图表
-                    initStackedAreaChart();
-                    
-                    showToast('堆叠面积图数据已更新，峰值标记位置已调整', 'success');
-                }
-            }
-            
-            closeModal();
-        }
-
-        function addRow() {
-            const tbody = document.getElementById('editTableBody');
-            if (!tbody) return;
-            
-            if (currentEditTarget === 'stackedAreaChart') {
-                // 为堆叠面积图添加系列
-                const rowCount = tbody.children.length;
-                const daysCount = module1Data.stackedAreaChart.days.length;
-                
-                // 创建新行
-                const newRow = document.createElement('tr');
-                
-                // 添加系列名称单元格
-                const nameCell = document.createElement('td');
-                nameCell.className = 'px-4 py-3 whitespace-nowrap';
-                nameCell.innerHTML = `
-                    <input type="text" value="新系列" data-series="${rowCount}" data-field="name" 
-                           class="w-full py-2 px-3 rounded border border-gray-300">
-                `;
-                newRow.appendChild(nameCell);
-                
-                // 为每一天添加数据单元格
-                for (let i = 0; i < daysCount; i++) {
-                    const dataCell = document.createElement('td');
-                    dataCell.className = 'px-4 py-3 whitespace-nowrap';
-                    dataCell.innerHTML = `
-                        <input type="number" value="0" data-series="${rowCount}" data-day="${i}" 
-                               class="w-full py-2 px-3 rounded border border-gray-300">
-                    `;
-                    newRow.appendChild(dataCell);
-                }
-                
-                // 添加颜色单元格
-                const colorCell = document.createElement('td');
-                colorCell.className = 'px-4 py-3 whitespace-nowrap';
-                colorCell.innerHTML = `
-                    <input type="color" value="#3b82f6" data-series="${rowCount}" data-field="color" 
-                           class="w-10 h-10 rounded border border-gray-300 cursor-pointer">
-                `;
-                newRow.appendChild(colorCell);
-                
-                tbody.appendChild(newRow);
-                showToast('已添加新系列', 'info');
-                
-            } else {
-                // 其他图表添加行
-                const rowCount = tbody.children.length;
-                const firstRow = tbody.children[0];
-                const newRow = firstRow.cloneNode(true);
-                
-                // 清空输入值
-                newRow.querySelectorAll('input').forEach(input => {
-                    if (input.type === 'text' || input.type === 'number') {
-                        input.value = '';
-                    }
-                    // 更新data-index属性
-                    if (input.dataset.index !== undefined) {
-                        input.dataset.index = rowCount;
-                    }
-                    if (input.dataset.series !== undefined) {
-                        input.dataset.series = rowCount;
-                    }
-                });
-                
-                tbody.appendChild(newRow);
-                showToast('已添加新行', 'info');
-            }
-        }
-
-        function removeRow() {
-            const tbody = document.getElementById('editTableBody');
-            if (!tbody || tbody.children.length <= 1) {
-                showToast('至少需要保留一行数据', 'warning');
-                return;
-            }
-            
-            tbody.removeChild(tbody.lastElementChild);
-            showToast('已删除最后一行', 'info');
-        }
-
-        // ==================== 导入导出功能 ====================
-        function importModuleData() {
-            document.getElementById('fileInput').click();
-        }
-
-        function exportModuleData() {
-            let data = [];
-            const fileName = `黑龙江出行数据_模块一_整体客流情况_${formatDate(new Date())}`;
-            
-            // 关键指标
-            data.push(['关键指标分组数据']);
-            data.push(['分组', '指标名称', '数值', '单位']);
-            
-            // 第1组
-            data.push(['第1组：整体接待情况', '接待游客人次', module1Data.metrics.totalVisitors.value, '万']);
-            data.push(['', '同比增幅', module1Data.metrics.totalYoy.value, '%']);
-            
-            // 第2组
-            data.push(['第2组：境外游客情况', '接待境外游客人次', module1Data.metrics.foreignVisitors.value, '万']);
-            data.push(['', '占比', module1Data.metrics.foreignProportion.value, '%']);
-            data.push(['', '同比增长', module1Data.metrics.foreignYoy.value, '%']);
-            
-            // 第3组
-            data.push(['第3组：外省游客情况', '接待外省游客人次', module1Data.metrics.externalVisitors.value, '万']);
-            data.push(['', '占比', module1Data.metrics.externalProportion.value, '%']);
-            data.push(['', '同比增长', module1Data.metrics.externalYoy.value, '%']);
-            
-            // 第4组
-            data.push(['第4组：省内游客情况', '接待省内游客人次', module1Data.metrics.localVisitors.value, '万']);
-            data.push(['', '占比', module1Data.metrics.localProportion.value, '%']);
-            data.push(['', '同比增长', module1Data.metrics.localYoy.value, '%']);
-            
-            // 第5组
-            data.push(['第5组：周期到访情况', '周期-日均到访人次', module1Data.metrics.avgDailyVisitors.value, '万']);
-            data.push(['', '周期-日峰值到访人次', module1Data.metrics.peakDailyVisitors.value, '万']);
-            
-            data.push(['', '', '', '']); // 空行分隔
-            
-            // 饼图数据
-            data.push(['饼图数据 - 游客来源分布']);
-            data.push(['来源', '占比 (%)', '颜色']);
-            module1Data.pieChart.forEach(item => {
-                data.push([item.name, item.value, item.color]);
             });
             
-            data.push(['', '', '']); // 空行分隔
-            
-            // 柱状图数据
-            data.push(['柱状图数据 - 游客人次对比']);
-            data.push(['来源', '当前年 (人次)', '去年 (人次)']);
-            module1Data.barChart.categories.forEach((category, index) => {
-                data.push([
-                    category,
-                    module1Data.barChart.series[0].data[index],
-                    module1Data.barChart.series[1].data[index]
-                ]);
-            });
-            
-            data.push(['颜色代码', module1Data.barChart.series[0].color, module1Data.barChart.series[1].color]);
-            
-            data.push(['', '', '']); // 空行分隔
-            
-            // 堆叠面积图数据
-            data.push(['堆叠面积图数据 - 每日游客来源趋势']);
-            data.push(['日期', ...module1Data.stackedAreaChart.days, '颜色']);
-            
-            module1Data.stackedAreaChart.series.forEach(series => {
-                data.push([series.name, ...series.data, series.color]);
-            });
-            
-            // 峰值数据
-            const peakData = calculatePeakData();
-            data.push(['', '', '', '', '', '', '', '', '', '']); // 空行分隔
-            data.push(['峰值数据']);
-            data.push(['峰值日期', '峰值数值', '峰值索引']);
-            data.push([peakData.day, peakData.value, peakData.index]);
-            
-            // 创建工作簿和工作表
-            const worksheet = XLSX.utils.aoa_to_sheet(data);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, '模块一数据');
-            
-            // 生成Excel文件并下载
-            try {
-                XLSX.writeFile(workbook, `${fileName}.xlsx`);
-                showToast(`数据已导出为 ${fileName}.xlsx`, 'success');
-            } catch (error) {
-                console.error('导出错误:', error);
-                showToast('导出失败: ' + error.message, 'error');
-            }
-        }
-
-        function handleFileImport(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
-                    
-                    // 这里可以添加具体的解析逻辑
-                    // 简单示例：只显示成功导入的消息
-                    showToast('Excel数据导入成功！请使用编辑功能查看数据。', 'success');
-                    
-                } catch (error) {
-                    console.error('导入错误:', error);
-                    showToast('导入失败，请检查文件格式是否正确', 'error');
-                }
+            observer.observe(document.body, { childList: true, subtree: true });
+        })();
+        
+        // 窗口大小变化时重新计算尺寸
+        window.addEventListener('resize', function() {
+            if (protectedImage.complete) {
+                // 重新计算图片显示尺寸
+                const naturalWidth = protectedImage.naturalWidth;
+                const naturalHeight = protectedImage.naturalHeight;
+                const viewportWidth = window.innerWidth;
+                const scaleFactor = viewportWidth / naturalWidth;
+                const displayHeight = naturalHeight * scaleFactor;
                 
-                event.target.value = '';
-            };
-            
-            reader.readAsArrayBuffer(file);
-        }
-
-        // ==================== 工具函数 ====================
-        function formatDate(date) {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            const hour = String(date.getHours()).padStart(2, '0');
-            const minute = String(date.getMinutes()).padStart(2, '0');
-            return `${year}${month}${day}_${hour}${minute}`;
-        }
-
-        function showToast(message, type = 'info') {
-            // 移除已有的toast
-            const existingToast = document.getElementById('custom-toast');
-            if (existingToast) {
-                existingToast.remove();
+                // 重新设置高度
+                document.body.style.height = displayHeight + 'px';
+                document.documentElement.style.height = displayHeight + 'px';
+                document.querySelector('.image-container').style.height = displayHeight + 'px';
+                
+                console.log('窗口大小改变，重新计算显示尺寸:', viewportWidth + 'x' + displayHeight + '像素');
             }
-            
-            // 创建toast元素
-            const toast = document.createElement('div');
-            toast.id = 'custom-toast';
-            toast.className = `toast ${type} show`;
-            toast.innerHTML = `
-                <div class="flex items-center">
-                    <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle'} mr-2"></i>
-                    <span>${message}</span>
-                </div>
-            `;
-            
-            document.body.appendChild(toast);
-            
-            // 3秒后隐藏并移除toast
-            setTimeout(() => {
-                toast.classList.remove('show');
-                setTimeout(() => {
-                    if (toast.parentNode) {
-                        toast.parentNode.removeChild(toast);
-                    }
-                }, 300);
-            }, 3000);
-        }
-
-        console.log('黑龙江出行大数据分析系统 - 模块一已加载完成');
+        });
+        
+        // 初始加载后检查一次，确保没有留白
+        setTimeout(function() {
+            if (protectedImage.complete) {
+                // 检查图片是否占满容器
+                const container = document.querySelector('.image-container');
+                const img = document.querySelector('.protected-image');
+                
+                if (container.offsetHeight > img.offsetHeight) {
+                    // 如果有留白，调整容器高度与图片一致
+                    container.style.height = img.offsetHeight + 'px';
+                    document.body.style.height = img.offsetHeight + 'px';
+                    document.documentElement.style.height = img.offsetHeight + 'px';
+                    console.log('检测到留白，已调整容器高度');
+                }
+            }
+        }, 500);
     </script>
 </body>
 </html>
